@@ -54,6 +54,7 @@
     background: #444466;
     border-radius: 6px;
     min-height: 40px;
+    white-space: pre-wrap;
   }
 </style>
 </head>
@@ -152,14 +153,13 @@
       alert("Введи коректні числа");
       return;
     }
-    // Приклад проста формула втрат: втрата = 30% у власних силах, 50% у противника
     const atkLoss = Math.round(atk * 0.3);
     const defLoss = Math.round(def * 0.5);
     document.getElementById('calculator_result').innerText = `Втрати атакуючих: ${atkLoss}\nВтрати оборонних: ${defLoss}`;
     sendData('calculator', {attack: atk, defense: def, atkLoss, defLoss});
   }
 
-  // Прогноз бою (очень спрощений)
+  // Прогноз бою (дуже спрощений)
   function forecastBattle() {
     const atk = Number(document.getElementById('forecast_attack').value);
     const def = Number(document.getElementById('forecast_defense').value);
@@ -175,7 +175,7 @@
     sendData('forecast', {attack: atk, defense: def, forecast: winner});
   }
 
-  // Конвертер ресурсів (приклад конвертації: 1 метал = 2 паливо)
+  // Конвертер ресурсів (1 метал = 2 палива)
   function convertResources() {
     const metal = Number(document.getElementById('convert_metal').value);
     if (!metal) {
