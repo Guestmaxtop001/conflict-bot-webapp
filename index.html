@@ -195,6 +195,81 @@
 .subtab-content.active {
   display: block;
 }
+  /* Відступи і фон вкладки */
+  #admin-panel {
+    background: #f9fafb;
+    border-radius: 8px;
+    padding: 20px;
+    max-width: 900px;
+    margin: 0 auto;
+    box-shadow: 0 2px 10px rgb(0 0 0 / 0.1);
+  }
+
+  /* Заголовок */
+  #admin-panel h3 {
+    color: #2c3e50;
+    font-weight: 700;
+    margin-bottom: 15px;
+  }
+
+  /* Таблиці */
+  table.table {
+    background: white;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  table.table thead {
+    background-color: #007bff;
+    color: white;
+  }
+
+  table.table th,
+  table.table td {
+    padding: 12px 15px;
+    vertical-align: middle;
+    text-align: center;
+  }
+
+  /* Кнопки */
+  button.btn {
+    min-width: 70px;
+    margin: 0 3px;
+    font-size: 0.85rem;
+  }
+
+  button.btn-sm {
+    padding: 5px 10px;
+  }
+
+  /* Статуси */
+  td.status-active {
+    color: #28a745; /* зелений */
+    font-weight: 600;
+  }
+  td.status-muted {
+    color: #ffc107; /* жовтий */
+    font-weight: 600;
+  }
+  td.status-banned {
+    color: #dc3545; /* червоний */
+    font-weight: 600;
+  }
+
+  /* Модальне вікно */
+  .modal-content {
+    border-radius: 12px;
+  }
+
+  .modal-header {
+    border-bottom: 2px solid #007bff;
+  }
+
+  /* Hover ефекти на рядках */
+  tbody tr:hover {
+    background-color: #f1f7ff;
+    cursor: pointer;
+  }
   </style>
 </head>
 <body>
@@ -312,7 +387,39 @@
 <div id="admin" class="tab-content">
   <div class="section">
     <h2>⚙️ Адмін</h2>
-    <p>Тут можна буде банити, мутити, пінити повідомлення і керувати каналами/групами.</p>
+    <div id="admin-panel" class="p-3">
+  <h3>📺 Адмінка – Канали</h3>
+  <table class="table table-bordered mt-3" id="channelsTable">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Назва</th>
+        <th>Дії</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- Динамічно додається -->
+    </tbody>
+  </table>
+
+  <!-- Модальне вікно з користувачами каналу -->
+  <div class="modal fade" id="usersModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">👥 Користувачі каналу</h5>
+          <button class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <table class="table" id="usersTable">
+            <thead><tr><th>ID</th><th>Ім'я</th><th>Роль</th><th>Статус</th><th>Дії</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+    </div>
   </div>
 </div>
 
@@ -642,6 +749,77 @@ function switchSubTab(sectionId, event) {
   document.getElementById(sectionId).classList.add('active');
   if(event) event.target.classList.add('active');
 }
+  async function loadChannels() {
+    const response = await fetch('/api/channels'); // або /bot/channels
+    const channels = await response.json();
+    const tbody = document.querySelector("#channelsTable tbody");
+    tbody.innerHTML = "";
+
+    channels.forEach(channel => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${channel.id}</td>
+        <td>${channel.name}</td>
+        <td>
+          <button class="btn btn-primary btn-sm" onclick="showUsers('${channel.id}')">Користувачі</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // Викликаємо одразу при завантаженні
+  loadChannels();
+  async function showUsers(channelId) {
+    const response = await fetch(`/api/users?channelId=${channelId}`);
+    const users = await response.json();
+    const tbody = document.querySelector("#usersTable tbody");
+    tbody.innerHTML = "";
+
+    users.forEach(user => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${user.id}</td>
+        <td>${user.name}</td>
+        <td>${user.role}</td>
+        <td>
+          ${user.isBanned ? "🚫 Бан" : user.isMuted ? "🔇 Мут" : "✅ Активний"}
+        </td>
+        <td>
+          <button class="btn btn-warning btn-sm" onclick="muteUser('${user.id}')">Мут</button>
+          <button class="btn btn-danger btn-sm" onclick="banUser('${user.id}')">Бан</button>
+          <button class="btn btn-secondary btn-sm" onclick="changeRole('${user.id}')">Роль</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    const modal = new bootstrap.Modal(document.getElementById("usersModal"));
+    modal.show();
+  }
+  async function muteUser(userId) {
+    await fetch(`/api/users/${userId}/mute`, { method: 'POST' });
+    alert("🔇 Користувач замучений");
+    document.querySelector("#usersModal .btn-close").click();
+  }
+
+  async function banUser(userId) {
+    await fetch(`/api/users/${userId}/ban`, { method: 'POST' });
+    alert("🚫 Користувач забанений");
+    document.querySelector("#usersModal .btn-close").click();
+  }
+
+  async function changeRole(userId) {
+    const newRole = prompt("Нова роль: user / moderator / admin");
+    if (!newRole) return;
+    await fetch(`/api/users/${userId}/role`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role: newRole })
+    });
+    alert("🎖 Роль оновлено");
+    document.querySelector("#usersModal .btn-close").click();
+  }
 </script>
 </body>
 </html>
