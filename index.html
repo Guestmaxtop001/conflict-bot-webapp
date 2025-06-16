@@ -14,7 +14,7 @@
       max-width: 500px;
       margin: auto;
     }
-    h1, h2 {
+    h1, h2, h3 {
       text-align: center;
       margin-bottom: 15px;
     }
@@ -72,6 +72,8 @@
     }
     label {
       font-weight: bold;
+      display: block;
+      margin-top: 10px;
     }
     .result {
       margin-top: 10px;
@@ -81,6 +83,22 @@
       min-height: 40px;
       white-space: pre-wrap;
     }
+    #mafia_game_log {
+      background: #222;
+      color: #0f0;
+      padding: 10px;
+      height: 150px;
+      overflow-y: auto;
+      border-radius: 6px;
+      margin-top: 10px;
+      white-space: pre-wrap;
+    }
+    #mafia_choices button {
+      margin: 5px 5px 5px 0;
+      width: auto;
+      padding: 8px 12px;
+      font-size: 14px;
+    }
   </style>
 </head>
 <body>
@@ -88,11 +106,11 @@
 
 <!-- Вкладки -->
 <div class="tabs">
-  <button onclick="switchTab('tools')" class="active">🔧 Інструменти</button>
-  <button onclick="switchTab('games')">🎮 Ігри</button>
-  <button onclick="switchTab('admin')">⚙️ Адмін</button>
-  <button onclick="switchTab('blacklist')">🚫 БЧС</button>
-  <button onclick="switchTab('history')">📜 Історія</button>
+  <button onclick="switchTab('tools', event)" class="active">🔧 Інструменти</button>
+  <button onclick="switchTab('games', event)">🎮 Ігри</button>
+  <button onclick="switchTab('admin', event)">⚙️ Адмін</button>
+  <button onclick="switchTab('blacklist', event)">🚫 БЧС</button>
+  <button onclick="switchTab('history', event)">📜 Історія</button>
 </div>
 
 <!-- Контент вкладок -->
@@ -152,10 +170,21 @@
   </div>
 </div>
 
+<!-- Вкладка Ігри -->
 <div id="games" class="tab-content">
   <div class="section">
     <h2>🎮 Ігри</h2>
     <p>Тут будуть міні-ігри: вікторини, меми, random тощо.</p>
+    
+    <div id="mafia_game_section">
+      <h3>Мафія</h3>
+      <label for="mafia_players">Кількість гравців (4-10):</label>
+      <input type="number" id="mafia_players" min="4" max="10" value="6" />
+      <button onclick="startMafiaGame()">Почати гру</button>
+      
+      <pre id="mafia_game_log"></pre>
+      <div id="mafia_choices"></div>
+    </div>
   </div>
 </div>
 
@@ -184,11 +213,11 @@
   const tg = window.Telegram.WebApp;
   tg.expand();
 
-  function switchTab(tabId) {
+  function switchTab(tabId, event) {
     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
     document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
     document.getElementById(tabId).classList.add('active');
-    event.target.classList.add('active');
+    if(event) event.target.classList.add('active');
   }
 
   function showSection(sectionId) {
@@ -239,157 +268,179 @@
     let winner = 'Нічия';
     if(atk > def * 1.2) winner = 'Перемога атакуючих';
     else if(def > atk * 1.2) winner = 'Перемога оборонних';
-
     document.getElementById('forecast_result').innerText = `Прогноз: ${winner}`;
-    sendData('forecast', {attack: atk, defense: def, forecast: winner});
+    sendData('forecast', {attack: atk, defense: def, winner});
   }
 
   function convertResources() {
     const metal = Number(document.getElementById('convert_metal').value);
-    if (!metal) {
-      alert("Введи коректне число металу");
+    const fuel = Number(document.getElementById('convert_fuel').value);
+    if (isNaN(metal) || isNaN(fuel)) {
+      alert("Введи числа для металу і палива");
       return;
     }
-    const fuel = metal * 2;
-    document.getElementById('converter_result').innerText = `${metal} металів = ${fuel} палива`;
-    sendData('converter', {metal, fuel});
+    // Приклад конвертації: 1 метал = 2 палива (умовно)
+    const totalFuelEquivalent = metal * 2 + fuel;
+    document.getElementById('converter_result').innerText = `Загальний еквівалент палива: ${totalFuelEquivalent}`;
+    sendData('converter', {metal, fuel, totalFuelEquivalent});
   }
 
   function showHistory() {
-    const history = JSON.parse(localStorage.getItem('battle_history') || '[]');
-    if (history.length === 0) {
-      document.getElementById('tracker_result').innerText = "Історія поки порожня.";
-      return;
-    }
-    let text = "Останні дії:\n";
-    history.slice(-5).forEach((item, i) => {
-      text += `${i+1}. [${item.type}] ${JSON.stringify(item.data)}\n`;
-    });
-    document.getElementById('tracker_result').innerText = text;
+    // Тут можна було б підвантажити історію з сервера або локально
+    const dummyHistory = [
+      "12:00 - Бій між країнами A і B",
+      "12:05 - Калькулятор втрат використано",
+      "12:10 - Прогноз бою отримано"
+    ].join('\n');
+    document.getElementById('tracker_result').innerText = dummyHistory;
+    sendData('history', {action: 'show'});
   }
 
-  const originalSendData = tg.sendData.bind(tg);
-  tg.sendData = function(data) {
-    try {
-      const parsed = JSON.parse(data);
-      let history = JSON.parse(localStorage.getItem('battle_history') || '[]');
-      history.push({type: parsed.type || 'unknown', data: parsed, timestamp: new Date().toISOString()});
-      if (history.length > 50) history.shift();
-      localStorage.setItem('battle_history', JSON.stringify(history));
-    } catch (e) {}
-    originalSendData(data);
-  }
+  // --- Мафія (проста гра) ---
+  const mafiaRoles = ['Мафія', 'Дон', 'Комісар', 'Доктор', 'Мирний', 'Мирний', 'Мирний', 'Мирний', 'Мирний', 'Мирний'];
+
   let mafiaGame = {
-  players: [],
-  roles: [],
-  alive: [],
-  phase: 'start',
-  dayCount: 1,
-  points: {},
-};
+    players: 0,
+    roles: [],
+    alive: [],
+    phase: 'none',
+    logElement: null,
+    choicesElement: null,
+  };
 
-const rolePool = ['Мафія', 'Мафія', 'Лікар', 'Детектив', 'Мирний', 'Мирний', 'Мирний', 'Мирний', 'Мирний', 'Мирний'];
-
-function startMafiaGame() {
-  const playerCount = Math.min(Math.max(4, Number(document.getElementById('mafia_players').value)), 10);
-  mafiaGame.players = Array.from({length: playerCount}, (_, i) => `Гравець ${i+1}`);
-  mafiaGame.roles = shuffle(rolePool.slice(0, playerCount));
-  mafiaGame.alive = [...mafiaGame.players];
-  mafiaGame.phase = 'night';
-  mafiaGame.dayCount = 1;
-  mafiaGame.points = JSON.parse(localStorage.getItem('mafia_points_full') || '{}');
-
-  updateLog(`🔄 Почалась гра з ${playerCount} гравцями.`);
-  nextPhase();
-  document.getElementById('mafia_game_section').classList.remove('hidden');
-}
-
-function shuffle(arr) {
-  return arr.map(a => [Math.random(), a]).sort().map(a => a[1]);
-}
-
-function updateLog(text) {
-  const log = document.getElementById('mafia_game_log');
-  log.innerText += `\n${text}`;
-  log.scrollTop = log.scrollHeight;
-}
-
-function nextPhase() {
-  const choicesDiv = document.getElementById('mafia_choices');
-  choicesDiv.innerHTML = '';
-
-  if (mafiaGame.phase === 'night') {
-    updateLog(`🌙 Ніч ${mafiaGame.dayCount}:`);
-    // Вибір мафії
-    const mafias = mafiaGame.players.filter((_, i) => mafiaGame.roles[i] === 'Мафія' && mafiaGame.alive.includes(mafiaGame.players[i]));
-    const targets = mafiaGame.alive.filter(p => !mafias.includes(p));
-    if (mafias.length > 0 && targets.length > 0) {
-      const target = targets[Math.floor(Math.random() * targets.length)];
-      updateLog(`🩸 Мафія вбиває: ${target}`);
-      mafiaGame.alive = mafiaGame.alive.filter(p => p !== target);
-    }
-
-    mafiaGame.phase = 'day';
-    setTimeout(nextPhase, 1000);
-  } else if (mafiaGame.phase === 'day') {
-    updateLog(`☀️ День ${mafiaGame.dayCount}:`);
-    mafiaGame.dayCount += 1;
-
-    const toVote = mafiaGame.alive;
-    if (toVote.length < 3) {
-      endGame();
+  function startMafiaGame() {
+    const numPlayers = Number(document.getElementById('mafia_players').value);
+    if (numPlayers < 4 || numPlayers > 10) {
+      alert("Кількість гравців має бути від 4 до 10");
       return;
     }
 
-    updateLog(`🗳️ Голосування між: ${toVote.join(', ')}`);
-    toVote.forEach(name => {
-      const btn = document.createElement('button');
-      btn.textContent = `Вигнати ${name}`;
-      btn.onclick = () => {
-        updateLog(`🚪 Вигнано: ${name}`);
-        mafiaGame.alive = mafiaGame.alive.filter(p => p !== name);
-        mafiaGame.phase = 'night';
-        checkWinConditions();
-      };
-      choicesDiv.appendChild(btn);
-    });
+    mafiaGame.players = numPlayers;
+    mafiaGame.roles = mafiaRoles.slice(0, numPlayers);
+    shuffleArray(mafiaGame.roles);
+    mafiaGame.alive = Array(numPlayers).fill(true);
+    mafiaGame.phase = 'night';
+    mafiaGame.logElement = document.getElementById('mafia_game_log');
+    mafiaGame.choicesElement = document.getElementById('mafia_choices');
+    mafiaGame.logElement.textContent = `Гра почалась! Кількість гравців: ${numPlayers}\nРолі розподілені.\nНічна фаза.\n`;
+    mafiaGame.choicesElement.innerHTML = '';
+    mafiaGame.currentNightAction();
   }
-}
 
-function checkWinConditions() {
-  const mafiasAlive = mafiaGame.alive.filter((p, i) => mafiaGame.roles[mafiaGame.players.indexOf(p)] === 'Мафія');
-  const civiliansAlive = mafiaGame.alive.length - mafiasAlive.length;
-
-  if (mafiasAlive.length === 0) {
-    updateLog(`🎉 Мирні перемогли!`);
-    assignPoints('Мирний');
-    endGame();
-  } else if (mafiasAlive.length >= civiliansAlive) {
-    updateLog(`😈 Мафія перемогла!`);
-    assignPoints('Мафія');
-    endGame();
-  } else {
-    setTimeout(nextPhase, 1000);
-  }
-}
-
-function assignPoints(winnerRole) {
-  mafiaGame.players.forEach((name, i) => {
-    if (!mafiaGame.points[name]) mafiaGame.points[name] = 0;
-    if (mafiaGame.roles[i] === winnerRole) {
-      mafiaGame.points[name] += 1;
+  function shuffleArray(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
     }
-  });
-  localStorage.setItem('mafia_points_full', JSON.stringify(mafiaGame.points));
-}
-
-function endGame() {
-  updateLog(`🏁 Гра завершена.\n📊 Рахунок:`);
-  for (const [name, score] of Object.entries(mafiaGame.points)) {
-    updateLog(`${name}: ${score} 🏆`);
   }
-  document.getElementById('mafia_choices').innerHTML = '';
-}
+
+  mafiaGame.currentNightAction = function() {
+    // На ніч Мафія вибирає жертву
+    const mafiaIndexes = [];
+    for (let i=0; i<this.players; i++) {
+      if (this.alive[i] && (this.roles[i] === 'Мафія' || this.roles[i] === 'Дон')) {
+        mafiaIndexes.push(i);
+      }
+    }
+    if (mafiaIndexes.length === 0) {
+      this.logElement.textContent += "Всі мафіозі мертві, ніч пропускається.\n";
+      this.phase = 'day';
+      this.dayPhase();
+      return;
+    }
+
+    this.logElement.textContent += "Мафія, виберіть жертву для вбивства:\n";
+    this.choicesElement.innerHTML = '';
+    for (let i=0; i<this.players; i++) {
+      if (this.alive[i] && !mafiaIndexes.includes(i)) {
+        const btn = document.createElement('button');
+        btn.textContent = `Вбити гравця #${i+1} (${this.roles[i]})`;
+        btn.onclick = () => {
+          this.killTarget = i;
+          this.logElement.textContent += `Мафія вибрала гравця #${i+1}.\n`;
+          this.choicesElement.innerHTML = '';
+          this.doDoctorAction();
+        };
+        this.choicesElement.appendChild(btn);
+      }
+    }
+  };
+
+  mafiaGame.doDoctorAction = function() {
+    // Доктор вибирає кого лікувати
+    this.logElement.textContent += "Доктор, виберіть кого лікувати:\n";
+    this.choicesElement.innerHTML = '';
+    for (let i=0; i<this.players; i++) {
+      if (this.alive[i]) {
+        const btn = document.createElement('button');
+        btn.textContent = `Вилікувати гравця #${i+1}`;
+        btn.onclick = () => {
+          this.protectTarget = i;
+          this.logElement.textContent += `Доктор вибрав гравця #${i+1} для лікування.\n`;
+          this.choicesElement.innerHTML = '';
+          this.resolveNight();
+        };
+        this.choicesElement.appendChild(btn);
+      }
+    }
+  };
+
+  mafiaGame.resolveNight = function() {
+    if (this.killTarget === this.protectTarget) {
+      this.logElement.textContent += "Жертва врятована доктором!\n";
+    } else {
+      this.alive[this.killTarget] = false;
+      this.logElement.textContent += `Гравець #${this.killTarget+1} (${this.roles[this.killTarget]}) вбитий вночі.\n`;
+    }
+    this.phase = 'day';
+    this.dayPhase();
+  };
+
+  mafiaGame.dayPhase = function() {
+    this.logElement.textContent += "Денна фаза. Обговорення і голосування.\n";
+    this.choicesElement.innerHTML = '';
+    // Для простоти, можна вибрати хто буде повішений
+    this.logElement.textContent += "Виберіть гравця для голосування на вилучення:\n";
+    for (let i=0; i<this.players; i++) {
+      if (this.alive[i]) {
+        const btn = document.createElement('button');
+        btn.textContent = `Повісити гравця #${i+1} (${this.roles[i]})`;
+        btn.onclick = () => {
+          this.alive[i] = false;
+          this.logElement.textContent += `Гравець #${i+1} (${this.roles[i]}) був повішений.\n`;
+          this.choicesElement.innerHTML = '';
+          this.checkWinConditions();
+        };
+        this.choicesElement.appendChild(btn);
+      }
+    }
+  };
+
+  mafiaGame.checkWinConditions = function() {
+    const mafiaAlive = this.roles.reduce((count, role, i) => (this.alive[i] && (role === 'Мафія' || role === 'Дон')) ? count + 1 : count, 0);
+    const othersAlive = this.alive.reduce((count, alive, i) => (alive && (this.roles[i] !== 'Мафія' && this.roles[i] !== 'Дон')) ? count + 1 : count, 0);
+
+    if (mafiaAlive === 0) {
+      this.logElement.textContent += "Виграли Мирні!\nГра завершена.";
+      this.choicesElement.innerHTML = '';
+      this.phase = 'finished';
+      return;
+    }
+    if (mafiaAlive >= othersAlive) {
+      this.logElement.textContent += "Виграла Мафія!\nГра завершена.";
+      this.choicesElement.innerHTML = '';
+      this.phase = 'finished';
+      return;
+    }
+
+    // Інакше - починається наступна ніч
+    this.phase = 'night';
+    this.killTarget = null;
+    this.protectTarget = null;
+    this.logElement.textContent += "\nНаступна ніч.\n";
+    this.currentNightAction();
+  };
+
 </script>
 </body>
 </html>
