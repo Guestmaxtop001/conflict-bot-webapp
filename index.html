@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Conflict of Nations WebApp</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  body {
+    background: #1e1e2f;
+    color: white;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    padding: 20px;
+    max-width: 500px;
+    margin: auto;
+  }
+  h1, h2 {
+    text-align: center;
+    margin-bottom: 15px;
+  }
+  button {
+    background-color: #007bff;
+    border: none;
+    color: white;
+    padding: 12px 25px;
+    margin: 8px 0;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    width: 100%;
+  }
+  input {
+    width: 100%;
+    padding: 10px;
+    margin-top: 8px;
+    margin-bottom: 15px;
+    border-radius: 6px;
+    border: none;
+    font-size: 16px;
+  }
+  .hidden { display: none; }
+  .section {
+    margin-top: 20px;
+    padding: 15px;
+    background: #2e2e45;
+    border-radius: 10px;
+  }
+  label {
+    font-weight: bold;
+  }
+  .result {
+    margin-top: 10px;
+    padding: 10px;
+    background: #444466;
+    border-radius: 6px;
+    min-height: 40px;
+    white-space: pre-wrap;
+  }
+</style>
+</head>
+<body>
+<h1>🪖 Conflict of Nations WebApp</h1>
+
+<div id="menu" class="section">
+  <button onclick="showSection('analyze')">⚔️ Аналіз бою</button>
+  <button onclick="showSection('calculator')">📉 Калькулятор втрат</button>
+  <button onclick="showSection('forecast')">🔮 Прогноз бою</button>
+  <button onclick="showSection('converter')">💰 Конвертер ресурсів</button>
+  <button onclick="showSection('tracker')">📊 Трекер прогресу</button>
+</div>
+
+<div id="analyze" class="section hidden">
+  <h2>⚔️ Аналіз бою</h2>
+  <label>Атакуючі сили:</label>
+  <input type="number" id="analyze_attack" placeholder="Введи кількість" />
+  <label>Оборонні сили:</label>
+  <input type="number" id="analyze_defense" placeholder="Введи кількість" />
+  <button onclick="analyzeBattle()">Проаналізувати</button>
+  <div id="analyze_result" class="result"></div>
+</div>
+
+<div id="calculator" class="section hidden">
+  <h2>📉 Калькулятор втрат</h2>
+  <label>Атакуючі сили:</label>
+  <input type="number" id="calc_attack" placeholder="Введи кількість" />
+  <label>Оборонні сили:</label>
+  <input type="number" id="calc_defense" placeholder="Введи кількість" />
+  <button onclick="calculateLosses()">Розрахувати втрати</button>
+  <div id="calculator_result" class="result"></div>
+</div>
+
+<div id="forecast" class="section hidden">
+  <h2>🔮 Прогноз бою</h2>
+  <label>Атакуючі сили:</label>
+  <input type="number" id="forecast_attack" placeholder="Введи кількість" />
+  <label>Оборонні сили:</label>
+  <input type="number" id="forecast_defense" placeholder="Введи кількість" />
+  <button onclick="forecastBattle()">Отримати прогноз</button>
+  <div id="forecast_result" class="result"></div>
+</div>
+
+<div id="converter" class="section hidden">
+  <h2>💰 Конвертер ресурсів</h2>
+  <label>Метал:</label>
+  <input type="number" id="convert_metal" placeholder="Введи кількість" />
+  <label>Паливо:</label>
+  <input type="number" id="convert_fuel" placeholder="Введи кількість" />
+  <button onclick="convertResources()">Конвертувати</button>
+  <div id="converter_result" class="result"></div>
+</div>
+
+<div id="tracker" class="section hidden">
+  <h2>📊 Трекер прогресу</h2>
+  <button onclick="showHistory()">Показати історію</button>
+  <div id="tracker_result" class="result"></div>
+</div>
+
+<script>
+  const tg = window.Telegram.WebApp;
+  tg.expand();
+
+  function showSection(sectionId) {
+    const sections = ['analyze','calculator','forecast','converter','tracker'];
+    sections.forEach(id => {
+      document.getElementById(id).classList.add('hidden');
+    });
+    document.getElementById(sectionId).classList.remove('hidden');
+  }
+
+  function sendData(type, payload) {
+    const data = JSON.stringify({type, ...payload});
+    tg.sendData(data);
+  }
+
+  // Аналіз бою
+  function analyzeBattle() {
+    const atk = Number(document.getElementById('analyze_attack').value);
+    const def = Number(document.getElementById('analyze_defense').value);
+    if (!atk || !def) {
+      alert("Введи коректні числа");
+      return;
+    }
+    const eff = (atk / (def + 1) * 100).toFixed(2);
+    document.getElementById('analyze_result').innerText = `Ефективність бою: ${eff}%`;
+    sendData('analyze', {attack: atk, defense: def, efficiency: eff});
+  }
+
+  // Калькулятор втрат (проста модель)
+  function calculateLosses() {
+    const atk = Number(document.getElementById('calc_attack').value);
+    const def = Number(document.getElementById('calc_defense').value);
+    if (!atk || !def) {
+      alert("Введи коректні числа");
+      return;
+    }
+    const atkLoss = Math.round(atk * 0.3);
+    const defLoss = Math.round(def * 0.5);
+    document.getElementById('calculator_result').innerText = `Втрати атакуючих: ${atkLoss}\nВтрати оборонних: ${defLoss}`;
+    sendData('calculator', {attack: atk, defense: def, atkLoss, defLoss});
+  }
+
+  // Прогноз бою (дуже спрощений)
+  function forecastBattle() {
+    const atk = Number(document.getElementById('forecast_attack').value);
+    const def = Number(document.getElementById('forecast_defense').value);
+    if (!atk || !def) {
+      alert("Введи коректні числа");
+      return;
+    }
+    let winner = 'Нічия';
+    if(atk > def * 1.2) winner = 'Перемога атакуючих';
+    else if(def > atk * 1.2) winner = 'Перемога оборонних';
+
+    document.getElementById('forecast_result').innerText = `Прогноз: ${winner}`;
+    sendData('forecast', {attack: atk, defense: def, forecast: winner});
+  }
+
+  // Конвертер ресурсів (1 метал = 2 палива)
+  function convertResources() {
+    const metal = Number(document.getElementById('convert_metal').value);
+    if (!metal) {
+      alert("Введи коректне число металу");
+      return;
+    }
+    const fuel = metal * 2;
+    document.getElementById('converter_result').innerText = `${metal} металів = ${fuel} палива`;
+    sendData('converter', {metal, fuel});
+  }
+
+  // Трекер прогресу (зберігаємо у localStorage)
+  function showHistory() {
+    const history = JSON.parse(localStorage.getItem('battle_history') || '[]');
+    if (history.length === 0) {
+      document.getElementById('tracker_result').innerText = "Історія поки порожня.";
+      return;
+    }
+    let text = "Останні дії:\n";
+    history.slice(-5).forEach((item, i) => {
+      text += `${i+1}. [${item.type}] ${JSON.stringify(item.data)}\n`;
+    });
+    document.getElementById('tracker_result').innerText = text;
+  }
+
+  // Перехоплення відправки даних, щоб зберігати їх в історії
+  const originalSendData = tg.sendData.bind(tg);
+  tg.sendData = function(data) {
+    try {
+      const parsed = JSON.parse(data);
+      let history = JSON.parse(localStorage.getItem('battle_history') || '[]');
+      history.push({type: parsed.type || 'unknown', data: parsed, timestamp: new Date().toISOString()});
+      if (history.length > 50) history.shift(); // максимум 50 записів
+      localStorage.setItem('battle_history', JSON.stringify(history));
+    } catch (e) {
+      // Якщо не JSON — ігноруємо
+    }
+    originalSendData(data);
+  }
+</script>
+</body>
+</html>
