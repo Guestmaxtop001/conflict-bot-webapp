@@ -184,6 +184,26 @@
       
       <pre id="mafia_game_log"></pre>
       <div id="mafia_choices"></div>
+      <div id="battle_simulation_section" style="margin-top:30px;">
+  <h3>🛡️ Міні-симуляція бою</h3>
+  <p>Обери кількість юнітів (типи: Піхота, Танки, Артилерія, ВПС)</p>
+
+  <label>Піхота:</label>
+  <input type="number" id="infantry" min="0" max="100" value="10" />
+  
+  <label>Танки:</label>
+  <input type="number" id="tanks" min="0" max="50" value="5" />
+  
+  <label>Артилерія:</label>
+  <input type="number" id="artillery" min="0" max="30" value="3" />
+  
+  <label>ВПС:</label>
+  <input type="number" id="airforce" min="0" max="20" value="2" />
+  
+  <button onclick="simulateBattle()">Почати бій</button>
+  
+  <div id="battle_result" class="result"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -440,6 +460,80 @@
     this.logElement.textContent += "\nНаступна ніч.\n";
     this.currentNightAction();
   };
+
+  // Бали
+function getScore() {
+  return Number(localStorage.getItem('battleScore')) || 0;
+}
+
+function setScore(score) {
+  localStorage.setItem('battleScore', score);
+  document.getElementById('score_display').innerText = `Бали: ${score}`;
+}
+
+// Функція симуляції бою
+function simulateBattle() {
+  // Витягуємо кількість юнітів гравця
+  const playerUnits = {
+    infantry: Number(document.getElementById('infantry').value),
+    tanks: Number(document.getElementById('tanks').value),
+    artillery: Number(document.getElementById('artillery').value),
+    airforce: Number(document.getElementById('airforce').value)
+  };
+
+  // Створюємо випадкового противника з приблизно такими ж значеннями
+  function randomUnit(base) {
+    return Math.max(0, Math.round(base * (0.7 + Math.random() * 0.6))); // від 70% до 130%
+  }
+  const enemyUnits = {
+    infantry: randomUnit(playerUnits.infantry),
+    tanks: randomUnit(playerUnits.tanks),
+    artillery: randomUnit(playerUnits.artillery),
+    airforce: randomUnit(playerUnits.airforce)
+  };
+
+  // Сила юнітів (ваги умовні)
+  const weights = {
+    infantry: 1,
+    tanks: 5,
+    artillery: 3,
+    airforce: 4
+  };
+
+  function armyPower(units) {
+    return units.infantry * weights.infantry +
+           units.tanks * weights.tanks +
+           units.artillery * weights.artillery +
+           units.airforce * weights.airforce;
+  }
+
+  const playerPower = armyPower(playerUnits);
+  const enemyPower = armyPower(enemyUnits);
+
+  let resultText = `Твоя армія: ${playerPower.toFixed(1)} сил\n` +
+                   `Ворожа армія: ${enemyPower.toFixed(1)} сил\n`;
+
+  // Визначення переможця
+  if(playerPower > enemyPower * 1.2) {
+    resultText += "Перемога! 🎉 +1 бал";
+    let score = getScore() + 1;
+    setScore(score);
+  } else if(enemyPower > playerPower * 1.2) {
+    resultText += "Програш. Спробуй ще.";
+  } else {
+    resultText += "Нічия.";
+  }
+
+  // Вивід результату
+  document.getElementById('battle_result').innerText = resultText;
+}
+
+// Відобразити початковий бал при завантаженні
+window.onload = function() {
+  if(document.getElementById('score_display')) {
+    setScore(getScore());
+  }
+};
 
 </script>
 </body>
