@@ -6,99 +6,164 @@
   <title>Conflict of Nations WebApp</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
-    body {
-      background: #1e1e2f;
-      color: white;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      padding: 20px;
-      max-width: 500px;
-      margin: auto;
-    }
-    h1, h2, h3 {
-      text-align: center;
-      margin-bottom: 15px;
-    }
-    .tabs {
-      display: flex;
-      gap: 5px;
-      margin-bottom: 15px;
-      justify-content: center;
-      flex-wrap: wrap;
-    }
-    .tabs button {
-      flex: 1;
-      padding: 10px;
-      background-color: #444;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-    .tabs button.active {
-      background-color: #007bff;
-    }
-    .tab-content {
-      display: none;
-    }
-    .tab-content.active {
-      display: block;
-    }
+  body {
+    background: #1e1e2f;
+    color: white;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    padding: 20px;
+    max-width: 600px;
+    margin: auto;
+    line-height: 1.5;
+  }
+
+  h1, h2, h3 {
+    text-align: center;
+    margin-bottom: 15px;
+    color: #ffffff;
+  }
+
+  .tabs {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 5px;
+    margin-bottom: 20px;
+  }
+
+  .tabs button {
+    flex: 1;
+    min-width: 100px;
+    padding: 10px;
+    background-color: #444;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+
+  .tabs button:hover {
+    background-color: #555;
+  }
+
+  .tabs button.active {
+    background-color: #007bff;
+  }
+
+  .tab-content {
+    display: none;
+  }
+
+  .tab-content.active {
+    display: block;
+  }
+
+  button {
+    background-color: #007bff;
+    border: none;
+    color: white;
+    padding: 12px 25px;
+    margin: 8px 0;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    width: 100%;
+    transition: background-color 0.2s ease;
+  }
+
+  button:hover {
+    background-color: #0056b3;
+  }
+
+  input, select, textarea {
+    width: 100%;
+    padding: 10px;
+    margin-top: 8px;
+    margin-bottom: 15px;
+    border-radius: 6px;
+    border: none;
+    font-size: 16px;
+    background-color: #2e2e45;
+    color: white;
+  }
+
+  input::placeholder {
+    color: #ccc;
+  }
+
+  .hidden {
+    display: none;
+  }
+
+  .section {
+    margin-top: 20px;
+    padding: 15px;
+    background: #2e2e45;
+    border-radius: 10px;
+    box-shadow: 0 0 8px rgba(0,0,0,0.2);
+  }
+
+  label {
+    font-weight: bold;
+    display: block;
+    margin-top: 10px;
+    margin-bottom: 5px;
+  }
+
+  .result {
+    margin-top: 10px;
+    padding: 10px;
+    background: #444466;
+    border-radius: 6px;
+    min-height: 40px;
+    white-space: pre-wrap;
+  }
+
+  #mafia_game_log {
+    background: #111;
+    color: #0f0;
+    padding: 10px;
+    height: 150px;
+    overflow-y: auto;
+    border-radius: 6px;
+    margin-top: 10px;
+    white-space: pre-wrap;
+    font-family: monospace;
+    font-size: 14px;
+  }
+
+  #mafia_choices {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+  }
+
+  #mafia_choices button {
+    padding: 8px 14px;
+    font-size: 14px;
+    background-color: #0069d9;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    flex: 0 1 auto;
+  }
+
+  #mafia_choices button:hover {
+    background-color: #0056b3;
+  }
+
+  @media (max-width: 500px) {
     button {
-      background-color: #007bff;
-      border: none;
-      color: white;
-      padding: 12px 25px;
-      margin: 8px 0;
-      border-radius: 8px;
-      font-size: 16px;
-      cursor: pointer;
-      width: 100%;
+      font-size: 14px;
+      padding: 10px 20px;
     }
-    input {
-      width: 100%;
-      padding: 10px;
-      margin-top: 8px;
-      margin-bottom: 15px;
-      border-radius: 6px;
-      border: none;
-      font-size: 16px;
-    }
-    .hidden { display: none; }
-    .section {
-      margin-top: 20px;
-      padding: 15px;
-      background: #2e2e45;
-      border-radius: 10px;
-    }
-    label {
-      font-weight: bold;
-      display: block;
-      margin-top: 10px;
-    }
-    .result {
-      margin-top: 10px;
-      padding: 10px;
-      background: #444466;
-      border-radius: 6px;
-      min-height: 40px;
-      white-space: pre-wrap;
-    }
-    #mafia_game_log {
-      background: #222;
-      color: #0f0;
-      padding: 10px;
-      height: 150px;
-      overflow-y: auto;
-      border-radius: 6px;
-      margin-top: 10px;
-      white-space: pre-wrap;
-    }
-    #mafia_choices button {
-      margin: 5px 5px 5px 0;
-      width: auto;
-      padding: 8px 12px;
+
+    .tabs button {
+      min-width: 90px;
       font-size: 14px;
     }
+  }
   </style>
 </head>
 <body>
@@ -170,40 +235,40 @@
   </div>
 </div>
 
-<!-- Вкладка Ігри -->
 <div id="games" class="tab-content">
   <div class="section">
     <h2>🎮 Ігри</h2>
     <p>Тут будуть міні-ігри: вікторини, меми, random тощо.</p>
-    
+
     <div id="mafia_game_section">
       <h3>Мафія</h3>
       <label for="mafia_players">Кількість гравців (4-10):</label>
       <input type="number" id="mafia_players" min="4" max="10" value="6" />
       <button onclick="startMafiaGame()">Почати гру</button>
-      
       <pre id="mafia_game_log"></pre>
       <div id="mafia_choices"></div>
-      <div id="battle_simulation_section" style="margin-top:30px;">
-  <h3>🛡️ Міні-симуляція бою</h3>
-  <p>Обери кількість юнітів (типи: Піхота, Танки, Артилерія, ВПС)</p>
+    </div>
 
-  <label>Піхота:</label>
-  <input type="number" id="infantry" min="0" max="100" value="10" />
-  
-  <label>Танки:</label>
-  <input type="number" id="tanks" min="0" max="50" value="5" />
-  
-  <label>Артилерія:</label>
-  <input type="number" id="artillery" min="0" max="30" value="3" />
-  
-  <label>ВПС:</label>
-  <input type="number" id="airforce" min="0" max="20" value="2" />
-  
-  <button onclick="simulateBattle()">Почати бій</button>
-  
-  <div id="battle_result" class="result"></div>
-      </div>
+    <div id="battle_simulation_section" style="margin-top:30px;">
+      <h3>🛡️ Міні-симуляція бою</h3>
+      <p>Обери кількість юнітів (типи: Піхота, Танки, Артилерія, ВПС)</p>
+
+      <label>Піхота:</label>
+      <input type="number" id="infantry" min="0" max="100" value="10" />
+
+      <label>Танки:</label>
+      <input type="number" id="tanks" min="0" max="50" value="5" />
+
+      <label>Артилерія:</label>
+      <input type="number" id="artillery" min="0" max="30" value="3" />
+
+      <label>ВПС:</label>
+      <input type="number" id="airforce" min="0" max="20" value="2" />
+
+      <button onclick="simulateBattle()">Почати бій</button>
+
+      <div id="battle_result" class="result"></div>
+      <div id="score_display">Бали: 0</div>
     </div>
   </div>
 </div>
@@ -228,7 +293,7 @@
     <p>Тут буде історія дій, лог, хронологія.</p>
   </div>
 </div>
-
+</body>
 <script>
   const tg = window.Telegram.WebApp;
   tg.expand();
